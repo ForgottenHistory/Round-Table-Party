@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { campaignService } from '$lib/server/services/campaignService';
+import { emitCampaignDeleted } from '$lib/server/socket';
 
 // GET /api/campaigns/[id] - Get campaign details with players and messages
 export const GET: RequestHandler = async ({ cookies, params }) => {
@@ -58,6 +59,9 @@ export const DELETE: RequestHandler = async ({ cookies, params }) => {
 	}
 
 	try {
+		// Emit deletion event BEFORE deleting (so users are still in the room)
+		emitCampaignDeleted(campaignId);
+
 		const deleted = await campaignService.deleteCampaign(campaignId, parseInt(userId));
 		if (!deleted) {
 			return json({ error: 'Campaign not found or not authorized' }, { status: 404 });

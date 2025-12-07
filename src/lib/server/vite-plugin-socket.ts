@@ -14,10 +14,15 @@ export function socketPlugin(): Plugin {
 				return;
 			}
 
-			// Wait for server to be listening before initializing Socket.IO
-			server.httpServer.once('listening', () => {
-				initSocketServer(server.httpServer!);
-			});
+			// Initialize Socket.IO - check if server is already listening
+			if (server.httpServer.listening) {
+				initSocketServer(server.httpServer as any);
+			} else {
+				// Wait for server to be listening before initializing Socket.IO
+				server.httpServer.once('listening', () => {
+					initSocketServer(server.httpServer as any);
+				});
+			}
 		}
 	};
 }

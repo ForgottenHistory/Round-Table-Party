@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { campaignService } from '$lib/server/services/campaignService';
 import { llmService } from '$lib/server/services/llmService';
-import { emitMessage } from '$lib/server/socket';
+import { emitMessage, emitGMResponding } from '$lib/server/socket';
 
 // POST /api/campaigns/[id]/continue - Trigger GM response (host only)
 export const POST: RequestHandler = async ({ cookies, params }) => {
@@ -34,6 +34,9 @@ export const POST: RequestHandler = async ({ cookies, params }) => {
 		// Set phase to responding
 		await campaignService.setPhase(campaignId, 'gm_responding');
 
+		// Notify all players that GM is responding
+		emitGMResponding(campaignId, true);
+
 		try {
 			// Get players and their characters
 			const players = await campaignService.getCampaignPlayers(campaignId);
@@ -60,10 +63,12 @@ export const POST: RequestHandler = async ({ cookies, params }) => {
 			// Add GM narrative
 			const gmMessage = await campaignService.addGMNarrative(campaignId, response.content);
 
+			// Reset phase to collecting_actions
+			await campaignService.setPhase(campaignId, 'collecting_actions');
+
 			// Emit to all players via Socket.IO
 			emitMessage(campaignId, gmMessage);
-
-			// Phase is reset to collecting_actions by addGMNarrative
+			emitGMResponding(campaignId, false);
 
 			return json({
 				message: gmMessage,
@@ -72,6 +77,7 @@ export const POST: RequestHandler = async ({ cookies, params }) => {
 		} catch (llmError) {
 			// Reset phase if LLM fails
 			await campaignService.setPhase(campaignId, 'collecting_actions');
+			emitGMResponding(campaignId, false);
 			throw llmError;
 		}
 	} catch (error) {

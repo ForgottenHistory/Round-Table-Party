@@ -17,8 +17,11 @@
 		onPlayerJoined,
 		onPlayerLeft,
 		onCharacterUpdated,
+		onGMResponding,
+		onCampaignDeleted,
 		removeAllListeners
 	} from '$lib/stores/socket';
+	import { goto } from '$app/navigation';
 
 	let { data }: { data: PageData } = $props();
 
@@ -33,7 +36,9 @@
 	// UI state
 	let showCharacterModal = $state(!character);
 	let showPremiseModal = $state(false);
-	let gmResponding = $state(campaign.phase === 'gm_responding');
+	// Only show GM responding if phase says so AND last message isn't from GM
+	let lastMessageIsGM = messages.length > 0 && messages[messages.length - 1].role === 'gm';
+	let gmResponding = $state(campaign.phase === 'gm_responding' && !lastMessageIsGM);
 	let triggeringGM = $state(false);
 
 	// Message container ref for scrolling
@@ -104,12 +109,28 @@
 			);
 		});
 
+		onGMResponding((eventData: { responding: boolean }) => {
+			gmResponding = eventData.responding;
+		});
+
+		onCampaignDeleted(() => {
+			// Campaign was deleted by host, redirect to home
+			goto('/');
+		});
+
 		scrollToBottom();
 	});
 
 	onDestroy(() => {
 		leaveConversation(campaign.id);
 		removeAllListeners();
+	});
+
+	// Auto-scroll when messages change
+	$effect(() => {
+		// Track messages array to trigger on changes
+		messages;
+		scrollToBottom();
 	});
 
 	function scrollToBottom() {
@@ -149,7 +170,10 @@
 
 		if (response.ok) {
 			const result = await response.json();
-			messages = [...messages, result.message];
+			// Add message locally only if not already present (socket might have arrived first)
+			if (!messages.find(m => m.id === result.message.id)) {
+				messages = [...messages, result.message];
+			}
 			submissionStatus = result.submissionStatus;
 			players = players.map(p =>
 				p.userId === data.user.id ? { ...p, hasSubmittedAction: true } : p
@@ -171,7 +195,10 @@
 
 			if (response.ok) {
 				const result = await response.json();
-				messages = [...messages, result.message];
+				// Add message locally only if not already present (socket might have arrived first)
+				if (!messages.find(m => m.id === result.message.id)) {
+					messages = [...messages, result.message];
+				}
 				submissionStatus = result.submissionStatus;
 				gmResponding = false;
 				players = players.map(p => ({ ...p, hasSubmittedAction: false }));

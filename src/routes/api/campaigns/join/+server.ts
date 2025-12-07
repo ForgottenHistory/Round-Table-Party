@@ -2,7 +2,6 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { campaignService } from '$lib/server/services/campaignService';
 import { emitPlayerJoined } from '$lib/server/socket';
-import { getUserById } from '$lib/server/auth';
 
 // POST /api/campaigns/join - Join a campaign via invite code
 export const POST: RequestHandler = async ({ cookies, request }) => {
@@ -30,15 +29,11 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 
 		// Emit player joined event if this is a new join
 		if (!wasAlreadyMember) {
-			const user = await getUserById(parseInt(userId));
-			if (user) {
-				emitPlayerJoined(campaign.id, {
-					userId: parseInt(userId),
-					displayName: user.displayName,
-					characterName: null,
-					hasSubmittedAction: false,
-					isHost: false
-				});
+			// Get the full player data including colorIndex
+			const players = await campaignService.getCampaignPlayers(campaign.id);
+			const newPlayer = players.find(p => p.userId === parseInt(userId));
+			if (newPlayer) {
+				emitPlayerJoined(campaign.id, newPlayer);
 			}
 		}
 

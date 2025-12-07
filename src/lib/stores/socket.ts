@@ -9,20 +9,34 @@ let socket: Socket | null = null;
  */
 export function initSocket() {
 	if (!browser) return null;
-	if (socket?.connected) return socket;
+
+	// Return existing socket if connected or connecting
+	if (socket) {
+		if (socket.connected) return socket;
+		// If disconnected, try to reconnect
+		if (socket.disconnected) {
+			socket.connect();
+			return socket;
+		}
+		return socket;
+	}
 
 	// Connect to current window location (handles port changes)
 	socket = io(window.location.origin, {
 		path: '/socket.io',
-		transports: ['websocket', 'polling']
+		transports: ['polling', 'websocket'], // Try polling first (more reliable in dev)
+		reconnection: true,
+		reconnectionAttempts: 5,
+		reconnectionDelay: 1000,
+		timeout: 20000
 	});
 
 	socket.on('connect', () => {
 		console.log('✅ Socket.IO connected to', window.location.origin);
 	});
 
-	socket.on('disconnect', () => {
-		console.log('❌ Socket.IO disconnected');
+	socket.on('disconnect', (reason) => {
+		console.log('❌ Socket.IO disconnected:', reason);
 	});
 
 	socket.on('connect_error', (err) => {
@@ -98,6 +112,22 @@ export function onCharacterUpdated(callback: (data: { userId: number; character:
 }
 
 /**
+ * Listen for GM responding state changes
+ */
+export function onGMResponding(callback: (data: { responding: boolean }) => void) {
+	if (!socket) return;
+	socket.on('gm-responding', callback);
+}
+
+/**
+ * Listen for campaign deleted event
+ */
+export function onCampaignDeleted(callback: (data: { campaignId: number }) => void) {
+	if (!socket) return;
+	socket.on('campaign-deleted', callback);
+}
+
+/**
  * Remove all listeners
  */
 export function removeAllListeners() {
@@ -107,4 +137,6 @@ export function removeAllListeners() {
 	socket.off('player-joined');
 	socket.off('player-left');
 	socket.off('character-updated');
+	socket.off('gm-responding');
+	socket.off('campaign-deleted');
 }

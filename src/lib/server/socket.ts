@@ -134,3 +134,29 @@ export function emitCharacterUpdated(campaignId: number, userId: number, charact
 	io.to(`conversation-${campaignId}`).emit('character-updated', { userId, character });
 	logger.info(`Emitted character-updated to campaign ${campaignId}`);
 }
+
+/**
+ * Emit GM responding state to a campaign room
+ */
+export function emitGMResponding(campaignId: number, responding: boolean) {
+	if (!io && global.__socketio) {
+		io = global.__socketio;
+	}
+
+	if (!io) return;
+	io.to(`conversation-${campaignId}`).emit('gm-responding', { responding });
+	logger.info(`Emitted gm-responding=${responding} to campaign ${campaignId}`);
+}
+
+/**
+ * Emit campaign deleted event to a campaign room
+ */
+export function emitCampaignDeleted(campaignId: number) {
+	if (!io && global.__socketio) {
+		io = global.__socketio;
+	}
+
+	if (!io) return;
+	io.to(`conversation-${campaignId}`).emit('campaign-deleted', { campaignId });
+	logger.info(`Emitted campaign-deleted to campaign ${campaignId}`);
+}
