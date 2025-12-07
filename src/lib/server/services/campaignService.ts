@@ -48,7 +48,7 @@ class CampaignService {
 	async createCampaign(
 		hostUserId: number,
 		name: string,
-		options?: { premise?: string; greeting?: string }
+		options?: { premise?: string; greeting?: string; skillTemplate?: string }
 	): Promise<Campaign> {
 		// Generate unique invite code
 		let inviteCode = generateInviteCode();
@@ -73,6 +73,7 @@ class CampaignService {
 				hostUserId,
 				premise: options?.premise || '',
 				greeting: options?.greeting || '',
+				skillTemplate: options?.skillTemplate || 'dnd-5e',
 				phase: 'collecting_actions'
 			})
 			.returning();
@@ -289,7 +290,7 @@ class CampaignService {
 	async upsertCharacter(
 		campaignId: number,
 		userId: number,
-		data: { name: string; description?: string; avatar?: string }
+		data: { name: string; description?: string; className?: string; skills?: string; avatar?: string }
 	): Promise<CampaignCharacter> {
 		const existing = await this.getCharacter(campaignId, userId);
 
@@ -299,6 +300,8 @@ class CampaignService {
 				.set({
 					name: data.name,
 					description: data.description ?? existing.description,
+					className: data.className ?? existing.className,
+					skills: data.skills ?? existing.skills,
 					avatar: data.avatar ?? existing.avatar
 				})
 				.where(eq(campaignCharacters.id, existing.id))
@@ -314,6 +317,8 @@ class CampaignService {
 				userId,
 				name: data.name,
 				description: data.description || '',
+				className: data.className || '',
+				skills: data.skills || '{}',
 				avatar: data.avatar || ''
 			})
 			.returning();
@@ -425,6 +430,50 @@ class CampaignService {
 		const result = await db.delete(campaigns).where(eq(campaigns.id, campaignId));
 
 		return result.changes > 0;
+	}
+
+	/**
+	 * Start a campaign (host only) - moves from lobby to active
+	 */
+	async startCampaign(campaignId: number, hostUserId: number): Promise<Campaign | null> {
+		const campaign = await this.getCampaignById(campaignId);
+		if (!campaign || campaign.hostUserId !== hostUserId) {
+			return null;
+		}
+
+		if (campaign.started) {
+			return campaign; // Already started
+		}
+
+		const [updated] = await db
+			.update(campaigns)
+			.set({ started: true })
+			.where(eq(campaigns.id, campaignId))
+			.returning();
+
+		return updated;
+	}
+
+	/**
+	 * Set the greeting message for a campaign
+	 */
+	async setGreeting(campaignId: number, greeting: string): Promise<void> {
+		await db
+			.update(campaigns)
+			.set({ greeting })
+			.where(eq(campaigns.id, campaignId));
+
+		// Add greeting as first GM message if none exists
+		const existingMessages = await this.getMessages(campaignId, 1);
+		if (existingMessages.length === 0) {
+			await db.insert(campaignMessages).values({
+				campaignId,
+				userId: null,
+				role: 'gm',
+				messageType: 'narrative',
+				content: greeting
+			});
+		}
 	}
 }
 

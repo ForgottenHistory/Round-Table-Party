@@ -47,7 +47,7 @@ export const POST: RequestHandler = async ({ cookies, params, request }) => {
 			return json({ error: 'Not a member of this campaign' }, { status: 403 });
 		}
 
-		const { name, description, avatar } = await request.json();
+		const { name, description, className, skills, avatar } = await request.json();
 
 		if (!name || typeof name !== 'string' || name.trim().length === 0) {
 			return json({ error: 'Character name is required' }, { status: 400 });
@@ -56,6 +56,8 @@ export const POST: RequestHandler = async ({ cookies, params, request }) => {
 		const character = await campaignService.upsertCharacter(campaignId, parseInt(userId), {
 			name: name.trim(),
 			description: description?.trim(),
+			className: className?.trim(),
+			skills: skills ? JSON.stringify(skills) : undefined,
 			avatar
 		});
 

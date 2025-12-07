@@ -98,16 +98,18 @@ class ContentLlmService {
 	}
 
 	/**
-	 * Generate campaign greeting/opening scene
+	 * Generate campaign greeting/opening scene with all characters
 	 */
 	async generateCampaignGreeting({
 		userId,
-		name,
-		premise
+		campaignName,
+		premise,
+		characters
 	}: {
 		userId: number;
-		name: string;
+		campaignName: string;
 		premise: string;
+		characters: string;
 	}): Promise<string> {
 		try {
 			console.log('📝 Content LLM generating campaign greeting...');
@@ -115,8 +117,9 @@ class ContentLlmService {
 			const settings = await contentLlmSettingsService.getUserSettings(userId);
 			const promptTemplate = await this.loadCampaignPrompt('campaign_greeting');
 			const prompt = promptTemplate
-				.replace('{{name}}', name)
-				.replace('{{premise}}', premise);
+				.replace('{{name}}', campaignName)
+				.replace('{{premise}}', premise)
+				.replace('{{characters}}', characters);
 
 			const response = await this.callContentLLM({
 				messages: [{ role: 'user', content: prompt }],

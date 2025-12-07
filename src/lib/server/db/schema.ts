@@ -321,6 +321,8 @@ export const campaigns = sqliteTable('campaigns', {
 		.references(() => users.id, { onDelete: 'cascade' }),
 	premise: text('premise').default(''), // Full campaign premise/setting
 	greeting: text('greeting').default(''), // Initial GM greeting/scene-setter
+	skillTemplate: text('skill_template').default('dnd-5e'), // Skill template ID (e.g., 'dnd-5e', 'elder-scrolls')
+	started: integer('started', { mode: 'boolean' }).notNull().default(false), // false = lobby, true = active campaign
 	phase: text('phase').notNull().default('collecting_actions'), // 'collecting_actions' | 'gm_responding'
 	createdAt: integer('created_at', { mode: 'timestamp' })
 		.notNull()
@@ -352,6 +354,8 @@ export const campaignCharacters = sqliteTable('campaign_characters', {
 		.references(() => users.id, { onDelete: 'cascade' }),
 	name: text('name').notNull(),
 	description: text('description').default(''),
+	className: text('class_name').default(''), // Generated class name (e.g., "Battle Mage")
+	skills: text('skills').default('{}'), // JSON object { "Strength": 14, "Dexterity": 10, ... }
 	avatar: text('avatar').default(''), // Base64 image data
 	createdAt: integer('created_at', { mode: 'timestamp' })
 		.notNull()

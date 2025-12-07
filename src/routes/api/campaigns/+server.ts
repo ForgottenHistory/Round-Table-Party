@@ -26,7 +26,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 	}
 
 	try {
-		const { name, premise, greeting } = await request.json();
+		const { name, premise, greeting, skillTemplate } = await request.json();
 
 		if (!name || typeof name !== 'string' || name.trim().length === 0) {
 			return json({ error: 'Campaign name is required' }, { status: 400 });
@@ -34,7 +34,8 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 
 		const campaign = await campaignService.createCampaign(parseInt(userId), name.trim(), {
 			premise: premise?.trim() || '',
-			greeting: greeting?.trim() || ''
+			greeting: greeting?.trim() || '',
+			skillTemplate: skillTemplate || 'dnd-5e'
 		});
 		return json({ campaign }, { status: 201 });
 	} catch (error) {

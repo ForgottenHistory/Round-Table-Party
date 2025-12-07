@@ -128,6 +128,14 @@ export function onCampaignDeleted(callback: (data: { campaignId: number }) => vo
 }
 
 /**
+ * Listen for campaign started event
+ */
+export function onCampaignStarted(callback: (data: { campaignId: number }) => void) {
+	if (!socket) return;
+	socket.on('campaign-started', callback);
+}
+
+/**
  * Remove all listeners
  */
 export function removeAllListeners() {
@@ -139,4 +147,5 @@ export function removeAllListeners() {
 	socket.off('character-updated');
 	socket.off('gm-responding');
 	socket.off('campaign-deleted');
+	socket.off('campaign-started');
 }

@@ -1,13 +1,33 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+
+	interface SkillTemplate {
+		id: string;
+		name: string;
+		description: string;
+	}
 
 	let campaignName = $state('');
 	let campaignDescription = $state('');
+	let selectedTemplate = $state('dnd-5e');
+	let skillTemplates = $state<SkillTemplate[]>([]);
 	let generatedPremise = $state('');
-	let generatedGreeting = $state('');
 	let step = $state<'input' | 'generating' | 'review'>('input');
 	let error = $state('');
 	let loading = $state(false);
+
+	onMount(async () => {
+		try {
+			const response = await fetch('/api/skill-templates');
+			if (response.ok) {
+				const data = await response.json();
+				skillTemplates = data.templates;
+			}
+		} catch (err) {
+			console.error('Failed to load skill templates:', err);
+		}
+	});
 
 	async function generateContent() {
 		if (!campaignName.trim()) {
@@ -43,7 +63,6 @@
 			}
 
 			generatedPremise = result.premise;
-			generatedGreeting = result.greeting;
 			step = 'review';
 			loading = false;
 		} catch (err) {
@@ -64,7 +83,7 @@
 				body: JSON.stringify({
 					name: campaignName.trim(),
 					premise: generatedPremise,
-					greeting: generatedGreeting
+					skillTemplate: selectedTemplate
 				})
 			});
 
@@ -148,6 +167,26 @@ Example: 'A dark fantasy adventure where heroes explore a haunted castle to brea
 							The AI will expand this into a full campaign premise and opening scene.
 						</p>
 					</div>
+
+					<div>
+						<label class="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+							Skill System
+						</label>
+						<div class="grid gap-3">
+							{#each skillTemplates as template}
+								<button
+									type="button"
+									onclick={() => selectedTemplate = template.id}
+									class="text-left p-4 rounded-xl border-2 transition {selectedTemplate === template.id
+										? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10'
+										: 'border-[var(--border-primary)] bg-[var(--bg-tertiary)] hover:border-[var(--text-muted)]'}"
+								>
+									<div class="font-medium text-[var(--text-primary)]">{template.name}</div>
+									<div class="text-sm text-[var(--text-muted)] mt-1">{template.description}</div>
+								</button>
+							{/each}
+						</div>
+					</div>
 				</div>
 
 				<div class="flex gap-4 mt-8">
@@ -173,37 +212,23 @@ Example: 'A dark fantasy adventure where heroes explore a haunted castle to brea
 				<div class="text-center">
 					<div class="w-16 h-16 mx-auto mb-6 border-4 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin"></div>
 					<h2 class="text-xl font-semibold text-[var(--text-primary)] mb-2">Generating Your Campaign</h2>
-					<p class="text-[var(--text-muted)]">Creating the premise and opening scene...</p>
+					<p class="text-[var(--text-muted)]">Creating the campaign premise...</p>
 				</div>
 			</div>
 
 		{:else if step === 'review'}
-			<!-- Step 3: Review -->
+			<!-- Step 3: Review Premise -->
 			<div class="space-y-6">
 				<div class="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] p-8">
 					<div class="flex items-center justify-between mb-4">
 						<div>
 							<h2 class="text-lg font-semibold text-[var(--text-primary)]">Campaign Premise</h2>
-							<p class="text-sm text-[var(--text-muted)]">This will be shown to players when they join.</p>
+							<p class="text-sm text-[var(--text-muted)]">This will be shown to players when they join. The opening scene will be generated when you start the campaign.</p>
 						</div>
 					</div>
 					<textarea
 						bind:value={generatedPremise}
-						rows="10"
-						class="w-full px-4 py-3 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] text-[var(--text-primary)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] resize-none"
-					></textarea>
-				</div>
-
-				<div class="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] p-8">
-					<div class="flex items-center justify-between mb-4">
-						<div>
-							<h2 class="text-lg font-semibold text-[var(--text-primary)]">Opening Scene</h2>
-							<p class="text-sm text-[var(--text-muted)]">The first message from the Game Master.</p>
-						</div>
-					</div>
-					<textarea
-						bind:value={generatedGreeting}
-						rows="10"
+						rows="12"
 						class="w-full px-4 py-3 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] text-[var(--text-primary)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] resize-none"
 					></textarea>
 				</div>

@@ -7,7 +7,8 @@
 		CampaignInput,
 		PartySidebar,
 		PremiseModal,
-		CharacterModal
+		CharacterModal,
+		CampaignLobby
 	} from '$lib/components/campaign';
 	import {
 		initSocket,
@@ -19,6 +20,7 @@
 		onCharacterUpdated,
 		onGMResponding,
 		onCampaignDeleted,
+		onCampaignStarted,
 		removeAllListeners
 	} from '$lib/stores/socket';
 	import { goto } from '$app/navigation';
@@ -32,14 +34,16 @@
 	let character = $state(data.character);
 	let submissionStatus = $state(data.submissionStatus);
 	let isHost = $state(data.isHost);
+	let started = $state(data.campaign.started);
 
 	// UI state
-	let showCharacterModal = $state(!character);
+	let showCharacterModal = $state(!character && started); // Only auto-show in active game, not lobby
 	let showPremiseModal = $state(false);
 	// Only show GM responding if phase says so AND last message isn't from GM
 	let lastMessageIsGM = messages.length > 0 && messages[messages.length - 1].role === 'gm';
 	let gmResponding = $state(campaign.phase === 'gm_responding' && !lastMessageIsGM);
 	let triggeringGM = $state(false);
+	let startingCampaign = $state(false);
 
 	// Message container ref for scrolling
 	let messagesContainer: HTMLDivElement;
@@ -118,6 +122,11 @@
 			goto('/');
 		});
 
+		onCampaignStarted(() => {
+			// Campaign was started by host, refresh to get greeting message
+			started = true;
+		});
+
 		scrollToBottom();
 	});
 
@@ -142,11 +151,11 @@
 	}
 
 	// Action handlers
-	async function handleSaveCharacter(name: string) {
+	async function handleSaveCharacter(charData: { name: string; description: string; className: string; skills: Record<string, number> }) {
 		const response = await fetch(`/api/campaigns/${campaign.id}/character`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ name })
+			body: JSON.stringify(charData)
 		});
 
 		if (response.ok) {
@@ -235,67 +244,115 @@
 			messages = messages.filter(m => m.id !== messageId);
 		}
 	}
+
+	async function handleStartCampaign() {
+		if (!isHost || startingCampaign) return;
+
+		startingCampaign = true;
+
+		try {
+			const response = await fetch(`/api/campaigns/${campaign.id}/start`, {
+				method: 'POST'
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+				started = true;
+				// Add greeting message if returned
+				if (result.message && !messages.find(m => m.id === result.message.id)) {
+					messages = [...messages, result.message];
+				}
+			}
+		} catch (error) {
+			console.error('Failed to start campaign:', error);
+		} finally {
+			startingCampaign = false;
+		}
+	}
 </script>
 
 <svelte:head>
 	<title>{campaign.name} | Round Table Party</title>
 </svelte:head>
 
-<div class="h-screen flex bg-[var(--bg-primary)]">
-	<!-- Main Chat Area -->
-	<div class="flex-1 flex flex-col">
-		<CampaignHeader
-			campaignName={campaign.name}
-			inviteCode={campaign.inviteCode}
-			premise={campaign.premise}
-			submittedCount={submissionStatus.submitted}
-			totalCount={submissionStatus.total}
-			onShowPremise={() => showPremiseModal = true}
-		/>
+{#if !started}
+	<!-- Lobby View -->
+	<CampaignLobby
+		campaignName={campaign.name}
+		inviteCode={campaign.inviteCode}
+		premise={campaign.premise ?? ''}
+		{players}
+		{character}
+		{isHost}
+		onCreateCharacter={() => showCharacterModal = true}
+		onStartCampaign={handleStartCampaign}
+		starting={startingCampaign}
+	/>
 
-		<!-- Messages -->
-		<div bind:this={messagesContainer} class="flex-1 overflow-y-auto p-6 space-y-4">
-			<CampaignMessages
-				{messages}
-				{players}
-				{isHost}
+	<CharacterModal
+		show={showCharacterModal}
+		campaignId={campaign.id}
+		onSave={handleSaveCharacter}
+	/>
+{:else}
+	<!-- Active Game View -->
+	<div class="h-screen flex bg-[var(--bg-primary)]">
+		<!-- Main Chat Area -->
+		<div class="flex-1 flex flex-col">
+			<CampaignHeader
+				campaignName={campaign.name}
+				inviteCode={campaign.inviteCode}
+				premise={campaign.premise}
+				submittedCount={submissionStatus.submitted}
+				totalCount={submissionStatus.total}
+				onShowPremise={() => showPremiseModal = true}
+			/>
+
+			<!-- Messages -->
+			<div bind:this={messagesContainer} class="flex-1 overflow-y-auto p-6 space-y-4">
+				<CampaignMessages
+					{messages}
+					{players}
+					{isHost}
+					{gmResponding}
+					onEditMessage={handleEditMessage}
+					onDeleteMessage={handleDeleteMessage}
+				/>
+			</div>
+
+			<CampaignInput
+				characterName={character?.name ?? null}
+				hasCharacter={!!character}
+				{hasSubmitted}
 				{gmResponding}
-				onEditMessage={handleEditMessage}
-				onDeleteMessage={handleDeleteMessage}
+				{isHost}
+				{canTriggerGM}
+				{triggeringGM}
+				onCreateCharacter={() => showCharacterModal = true}
+				onSubmitAction={handleSubmitAction}
+				onTriggerGM={handleTriggerGM}
 			/>
 		</div>
 
-		<CampaignInput
-			characterName={character?.name ?? null}
-			hasCharacter={!!character}
-			{hasSubmitted}
-			{gmResponding}
+		<PartySidebar
+			{players}
 			{isHost}
 			{canTriggerGM}
 			{triggeringGM}
-			onCreateCharacter={() => showCharacterModal = true}
-			onSubmitAction={handleSubmitAction}
 			onTriggerGM={handleTriggerGM}
 		/>
 	</div>
 
-	<PartySidebar
-		{players}
-		{isHost}
-		{canTriggerGM}
-		{triggeringGM}
-		onTriggerGM={handleTriggerGM}
+	<PremiseModal
+		show={showPremiseModal}
+		campaignName={campaign.name}
+		premise={campaign.premise ?? ''}
+		onClose={() => showPremiseModal = false}
 	/>
-</div>
 
-<PremiseModal
-	show={showPremiseModal}
-	campaignName={campaign.name}
-	premise={campaign.premise ?? ''}
-	onClose={() => showPremiseModal = false}
-/>
-
-<CharacterModal
-	show={showCharacterModal}
-	onSave={handleSaveCharacter}
-/>
+	<CharacterModal
+		show={showCharacterModal}
+		campaignId={campaign.id}
+		onSave={handleSaveCharacter}
+	/>
+{/if}

@@ -160,3 +160,16 @@ export function emitCampaignDeleted(campaignId: number) {
 	io.to(`conversation-${campaignId}`).emit('campaign-deleted', { campaignId });
 	logger.info(`Emitted campaign-deleted to campaign ${campaignId}`);
 }
+
+/**
+ * Emit campaign started event to a campaign room
+ */
+export function emitCampaignStarted(campaignId: number) {
+	if (!io && global.__socketio) {
+		io = global.__socketio;
+	}
+
+	if (!io) return;
+	io.to(`conversation-${campaignId}`).emit('campaign-started', { campaignId });
+	logger.info(`Emitted campaign-started to campaign ${campaignId}`);
+}

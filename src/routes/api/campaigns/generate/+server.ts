@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { contentLlmService } from '$lib/server/services/contentLlmService';
 
-// POST /api/campaigns/generate - Generate campaign premise and greeting
+// POST /api/campaigns/generate - Generate campaign premise only (greeting generated on start)
 export const POST: RequestHandler = async ({ cookies, request }) => {
 	const userId = cookies.get('userId');
 	if (!userId) {
@@ -20,20 +20,13 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 			return json({ error: 'Campaign description is required' }, { status: 400 });
 		}
 
-		// Generate premise from description
+		// Generate premise from description (greeting is generated on campaign start)
 		const premise = await contentLlmService.generateCampaignPremise({
 			userId: parseInt(userId),
 			description: description.trim()
 		});
 
-		// Generate greeting from name and premise
-		const greeting = await contentLlmService.generateCampaignGreeting({
-			userId: parseInt(userId),
-			name: name.trim(),
-			premise
-		});
-
-		return json({ premise, greeting });
+		return json({ premise });
 	} catch (error) {
 		console.error('Failed to generate campaign content:', error);
 		return json({ error: 'Failed to generate campaign content' }, { status: 500 });
