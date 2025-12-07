@@ -5,44 +5,10 @@
 	let { data }: { data: PageData } = $props();
 
 	let campaigns = $state(data.campaigns);
-	let showCreateModal = $state(false);
 	let showJoinModal = $state(false);
-	let newCampaignName = $state('');
 	let inviteCode = $state('');
 	let error = $state('');
 	let loading = $state(false);
-
-	async function createCampaign() {
-		if (!newCampaignName.trim()) {
-			error = 'Please enter a campaign name';
-			return;
-		}
-
-		loading = true;
-		error = '';
-
-		try {
-			const response = await fetch('/api/campaigns', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name: newCampaignName.trim() })
-			});
-
-			const result = await response.json();
-
-			if (!response.ok) {
-				error = result.error || 'Failed to create campaign';
-				loading = false;
-				return;
-			}
-
-			// Navigate to the new campaign
-			goto(`/campaign/${result.campaign.id}`);
-		} catch (err) {
-			error = 'Network error. Please try again.';
-			loading = false;
-		}
-	}
 
 	async function joinCampaign() {
 		if (!inviteCode.trim()) {
@@ -77,11 +43,9 @@
 	}
 
 	function closeModals() {
-		showCreateModal = false;
 		showJoinModal = false;
 		showLeaveModal = false;
 		selectedCampaign = null;
-		newCampaignName = '';
 		inviteCode = '';
 		error = '';
 	}
@@ -164,15 +128,15 @@
 	<div class="max-w-4xl mx-auto px-6 py-8">
 		<!-- Action Buttons -->
 		<div class="flex gap-4 mb-8">
-			<button
-				onclick={() => showCreateModal = true}
+			<a
+				href="/campaign/new"
 				class="flex-1 py-4 px-6 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white rounded-xl font-semibold hover:opacity-90 transition flex items-center justify-center gap-2"
 			>
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 				</svg>
 				Create Campaign
-			</button>
+			</a>
 			<button
 				onclick={() => showJoinModal = true}
 				class="flex-1 py-4 px-6 bg-[var(--bg-secondary)] border border-[var(--border-primary)] text-[var(--text-primary)] rounded-xl font-semibold hover:border-[var(--accent-primary)] transition flex items-center justify-center gap-2"
@@ -236,51 +200,6 @@
 		</div>
 	</div>
 </div>
-
-<!-- Create Campaign Modal -->
-{#if showCreateModal}
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick={closeModals}>
-		<div class="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] p-6 w-full max-w-md mx-4" onclick={(e) => e.stopPropagation()}>
-			<h2 class="text-xl font-bold text-[var(--text-primary)] mb-4">Create Campaign</h2>
-
-			{#if error}
-				<div class="bg-[var(--error)]/10 border border-[var(--error)]/30 text-[var(--error)] px-4 py-3 rounded-xl mb-4">
-					{error}
-				</div>
-			{/if}
-
-			<div class="mb-4">
-				<label for="campaignName" class="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-					Campaign Name
-				</label>
-				<input
-					id="campaignName"
-					type="text"
-					bind:value={newCampaignName}
-					placeholder="Enter campaign name..."
-					class="w-full px-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] text-[var(--text-primary)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-					onkeydown={(e) => e.key === 'Enter' && createCampaign()}
-				/>
-			</div>
-
-			<div class="flex gap-3">
-				<button
-					onclick={closeModals}
-					class="flex-1 py-2 px-4 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded-xl hover:bg-[var(--bg-primary)] transition"
-				>
-					Cancel
-				</button>
-				<button
-					onclick={createCampaign}
-					disabled={loading}
-					class="flex-1 py-2 px-4 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white rounded-xl font-medium hover:opacity-90 disabled:opacity-50 transition"
-				>
-					{loading ? 'Creating...' : 'Create'}
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
 
 <!-- Join Campaign Modal -->
 {#if showJoinModal}

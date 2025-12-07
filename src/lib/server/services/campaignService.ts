@@ -43,7 +43,11 @@ class CampaignService {
 	/**
 	 * Create a new campaign
 	 */
-	async createCampaign(hostUserId: number, name: string): Promise<Campaign> {
+	async createCampaign(
+		hostUserId: number,
+		name: string,
+		options?: { premise?: string; greeting?: string }
+	): Promise<Campaign> {
 		// Generate unique invite code
 		let inviteCode = generateInviteCode();
 		let attempts = 0;
@@ -65,6 +69,8 @@ class CampaignService {
 				name,
 				inviteCode,
 				hostUserId,
+				premise: options?.premise || '',
+				greeting: options?.greeting || '',
 				phase: 'collecting_actions'
 			})
 			.returning();
@@ -75,6 +81,17 @@ class CampaignService {
 			userId: hostUserId,
 			hasSubmittedAction: false
 		});
+
+		// If greeting was provided, add it as the first GM message
+		if (options?.greeting) {
+			await db.insert(campaignMessages).values({
+				campaignId: campaign.id,
+				userId: null,
+				role: 'gm',
+				messageType: 'narrative',
+				content: options.greeting
+			});
+		}
 
 		return campaign;
 	}

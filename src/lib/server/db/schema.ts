@@ -319,6 +319,8 @@ export const campaigns = sqliteTable('campaigns', {
 	hostUserId: integer('host_user_id')
 		.notNull()
 		.references(() => users.id, { onDelete: 'cascade' }),
+	premise: text('premise').default(''), // Full campaign premise/setting
+	greeting: text('greeting').default(''), // Initial GM greeting/scene-setter
 	phase: text('phase').notNull().default('collecting_actions'), // 'collecting_actions' | 'gm_responding'
 	createdAt: integer('created_at', { mode: 'timestamp' })
 		.notNull()

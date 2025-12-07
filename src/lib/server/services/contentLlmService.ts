@@ -6,6 +6,7 @@ import path from 'path';
 const PROMPTS_DIR = 'data/prompts';
 
 export type ContentType = 'description' | 'personality' | 'scenario' | 'message_example' | 'greeting';
+export type CampaignContentType = 'campaign_premise' | 'campaign_greeting';
 
 class ContentLlmService {
 	/**
@@ -62,6 +63,88 @@ class ContentLlmService {
 		} catch (error: any) {
 			console.error(`❌ Content LLM failed to rewrite ${type}:`, error.message);
 			throw error;
+		}
+	}
+
+	/**
+	 * Generate campaign premise from user description
+	 */
+	async generateCampaignPremise({
+		userId,
+		description
+	}: {
+		userId: number;
+		description: string;
+	}): Promise<string> {
+		try {
+			console.log('📝 Content LLM generating campaign premise...');
+
+			const settings = await contentLlmSettingsService.getUserSettings(userId);
+			const promptTemplate = await this.loadCampaignPrompt('campaign_premise');
+			const prompt = promptTemplate.replace('{{input}}', description);
+
+			const response = await this.callContentLLM({
+				messages: [{ role: 'user', content: prompt }],
+				settings,
+				contentType: 'campaign_premise'
+			});
+
+			console.log('📝 Content LLM finished generating campaign premise');
+			return response.trim();
+		} catch (error: any) {
+			console.error('❌ Content LLM failed to generate campaign premise:', error.message);
+			throw error;
+		}
+	}
+
+	/**
+	 * Generate campaign greeting/opening scene
+	 */
+	async generateCampaignGreeting({
+		userId,
+		name,
+		premise
+	}: {
+		userId: number;
+		name: string;
+		premise: string;
+	}): Promise<string> {
+		try {
+			console.log('📝 Content LLM generating campaign greeting...');
+
+			const settings = await contentLlmSettingsService.getUserSettings(userId);
+			const promptTemplate = await this.loadCampaignPrompt('campaign_greeting');
+			const prompt = promptTemplate
+				.replace('{{name}}', name)
+				.replace('{{premise}}', premise);
+
+			const response = await this.callContentLLM({
+				messages: [{ role: 'user', content: prompt }],
+				settings,
+				contentType: 'campaign_greeting'
+			});
+
+			console.log('📝 Content LLM finished generating campaign greeting');
+			return response.trim();
+		} catch (error: any) {
+			console.error('❌ Content LLM failed to generate campaign greeting:', error.message);
+			throw error;
+		}
+	}
+
+	/**
+	 * Load a campaign-specific prompt from file
+	 */
+	private async loadCampaignPrompt(type: CampaignContentType): Promise<string> {
+		try {
+			const content = await fs.readFile(path.join(PROMPTS_DIR, `${type}.txt`), 'utf-8');
+			return content.trim();
+		} catch (error) {
+			console.error(`Failed to load campaign prompt for ${type}, using default:`, error);
+			if (type === 'campaign_premise') {
+				return `Based on this description, write a detailed campaign premise:\n\n{{input}}\n\nPremise:`;
+			}
+			return `Write an opening scene for this campaign:\n\nName: {{name}}\nPremise: {{premise}}\n\nOpening:`;
 		}
 	}
 

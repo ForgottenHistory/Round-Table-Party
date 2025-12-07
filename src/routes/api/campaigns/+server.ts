@@ -26,13 +26,16 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 	}
 
 	try {
-		const { name } = await request.json();
+		const { name, premise, greeting } = await request.json();
 
 		if (!name || typeof name !== 'string' || name.trim().length === 0) {
 			return json({ error: 'Campaign name is required' }, { status: 400 });
 		}
 
-		const campaign = await campaignService.createCampaign(parseInt(userId), name.trim());
+		const campaign = await campaignService.createCampaign(parseInt(userId), name.trim(), {
+			premise: premise?.trim() || '',
+			greeting: greeting?.trim() || ''
+		});
 		return json({ campaign }, { status: 201 });
 	} catch (error) {
 		console.error('Failed to create campaign:', error);
