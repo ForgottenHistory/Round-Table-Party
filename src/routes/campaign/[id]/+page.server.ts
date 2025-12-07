@@ -2,6 +2,8 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getUserById } from '$lib/server/auth';
 import { campaignService } from '$lib/server/services/campaignService';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
 
 export const load: PageServerLoad = async ({ cookies, params }) => {
 	const userId = cookies.get('userId');
@@ -38,6 +40,16 @@ export const load: PageServerLoad = async ({ cookies, params }) => {
 	const character = await campaignService.getCharacter(campaignId, parseInt(userId));
 	const submissionStatus = await campaignService.getSubmissionStatus(campaignId);
 
+	// Load skill template for displaying skills by category
+	let skillTemplate = null;
+	try {
+		const templatePath = join(process.cwd(), 'data', 'skill-templates', `${campaign.skillTemplate || 'dnd-5e'}.json`);
+		const templateContent = await readFile(templatePath, 'utf-8');
+		skillTemplate = JSON.parse(templateContent);
+	} catch {
+		// Fallback if template not found
+	}
+
 	return {
 		user,
 		campaign,
@@ -45,6 +57,7 @@ export const load: PageServerLoad = async ({ cookies, params }) => {
 		messages,
 		character,
 		submissionStatus,
+		skillTemplate,
 		isHost: campaign.hostUserId === parseInt(userId)
 	};
 };

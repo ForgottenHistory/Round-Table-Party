@@ -6,6 +6,7 @@
 		CampaignMessages,
 		CampaignInput,
 		PartySidebar,
+		CharacterSidebar,
 		PremiseModal,
 		CharacterModal,
 		CampaignLobby
@@ -35,6 +36,7 @@
 	let submissionStatus = $state(data.submissionStatus);
 	let isHost = $state(data.isHost);
 	let started = $state(data.campaign.started);
+	let skillTemplate = data.skillTemplate;
 
 	// UI state
 	let showCharacterModal = $state(!character && started); // Only auto-show in active game, not lobby
@@ -296,17 +298,20 @@
 	/>
 {:else}
 	<!-- Active Game View -->
-	<div class="h-screen flex bg-[var(--bg-primary)]">
-		<!-- Main Chat Area -->
-		<div class="flex-1 flex flex-col">
-			<CampaignHeader
-				campaignName={campaign.name}
-				inviteCode={campaign.inviteCode}
-				premise={campaign.premise}
-				submittedCount={submissionStatus.submitted}
-				totalCount={submissionStatus.total}
-				onShowPremise={() => showPremiseModal = true}
-			/>
+	<div class="h-screen flex flex-col bg-[var(--bg-primary)]">
+		<CampaignHeader
+			campaignName={campaign.name}
+			inviteCode={campaign.inviteCode}
+			premise={campaign.premise}
+			submittedCount={submissionStatus.submitted}
+			totalCount={submissionStatus.total}
+			onShowPremise={() => showPremiseModal = true}
+		/>
+
+		<!-- Main Content Area (between header and input) -->
+		<div class="flex-1 flex min-h-0">
+			<!-- Left Sidebar: Character Info -->
+			<CharacterSidebar {character} {skillTemplate} />
 
 			<!-- Messages -->
 			<div bind:this={messagesContainer} class="flex-1 overflow-y-auto p-6 space-y-4">
@@ -320,25 +325,26 @@
 				/>
 			</div>
 
-			<CampaignInput
-				characterName={character?.name ?? null}
-				hasCharacter={!!character}
-				{hasSubmitted}
-				{gmResponding}
+			<!-- Right Sidebar: Party Info -->
+			<PartySidebar
+				{players}
 				{isHost}
 				{canTriggerGM}
 				{triggeringGM}
-				onCreateCharacter={() => showCharacterModal = true}
-				onSubmitAction={handleSubmitAction}
 				onTriggerGM={handleTriggerGM}
 			/>
 		</div>
 
-		<PartySidebar
-			{players}
+		<CampaignInput
+			characterName={character?.name ?? null}
+			hasCharacter={!!character}
+			{hasSubmitted}
+			{gmResponding}
 			{isHost}
 			{canTriggerGM}
 			{triggeringGM}
+			onCreateCharacter={() => showCharacterModal = true}
+			onSubmitAction={handleSubmitAction}
 			onTriggerGM={handleTriggerGM}
 		/>
 	</div>
