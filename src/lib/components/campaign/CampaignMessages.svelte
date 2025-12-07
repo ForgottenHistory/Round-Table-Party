@@ -48,6 +48,86 @@
 		return players.find(p => p.userId === userId);
 	}
 
+	/**
+	 * Escape HTML special characters to prevent XSS
+	 */
+	function escapeHtml(text: string): string {
+		return text
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#039;');
+	}
+
+	/**
+	 * Highlight player character names in text with their assigned colors
+	 * Matches full names and individual name parts (e.g., "Mike Oxlong", "Mike", "Oxlong")
+	 */
+	function highlightPlayerNames(text: string): string {
+		// Build a map of name variants to their color
+		// Full names take priority over partial names
+		const nameToColor = new Map<string, { color: string; priority: number }>();
+
+		players
+			.filter(p => p.characterName)
+			.forEach(p => {
+				const color = getPlayerColor(p.colorIndex).main;
+				const fullName = p.characterName!;
+
+				// Add full name with highest priority
+				nameToColor.set(fullName.toLowerCase(), { color, priority: fullName.length + 1000 });
+
+				// Add individual name parts with lower priority
+				const parts = fullName.split(/\s+/).filter(part => part.length >= 2);
+				parts.forEach(part => {
+					const key = part.toLowerCase();
+					const existing = nameToColor.get(key);
+					// Only add if not already exists or this has higher priority
+					if (!existing || part.length > existing.priority) {
+						nameToColor.set(key, { color, priority: part.length });
+					}
+				});
+			});
+
+		if (nameToColor.size === 0) return escapeHtml(text);
+
+		// Build regex pattern - sort by length (longest first) to match full names before parts
+		const allNames = Array.from(nameToColor.keys())
+			.sort((a, b) => b.length - a.length)
+			.map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+		const pattern = new RegExp(`\\b(${allNames.join('|')})\\b`, 'gi');
+
+		// Split text by player names and rebuild with colored spans
+		let result = '';
+		let lastIndex = 0;
+		let match;
+
+		while ((match = pattern.exec(text)) !== null) {
+			// Add escaped text before the match
+			result += escapeHtml(text.slice(lastIndex, match.index));
+
+			// Find the color for this name
+			const matchedName = match[1];
+			const entry = nameToColor.get(matchedName.toLowerCase());
+
+			if (entry) {
+				// Add colored span for the player name
+				result += `<span class="player-name-highlight" style="color: ${entry.color}; font-weight: 600;">${escapeHtml(matchedName)}</span>`;
+			} else {
+				result += escapeHtml(matchedName);
+			}
+
+			lastIndex = pattern.lastIndex;
+		}
+
+		// Add remaining escaped text
+		result += escapeHtml(text.slice(lastIndex));
+
+		return result;
+	}
+
 	function startEditing(message: CampaignMessage) {
 		editingMessageId = message.id;
 		editContent = message.content;
@@ -153,7 +233,7 @@
 						</div>
 					{:else}
 						<div class="text-[var(--text-primary)]">
-							<ChatMessage content={message.content} role="assistant" charName="Game Master" />
+							<ChatMessage content={message.content} role="assistant" charName="Game Master" {players} />
 						</div>
 					{/if}
 				</div>
@@ -226,7 +306,7 @@
 							</div>
 						</div>
 					{:else}
-						<div class="text-[var(--text-secondary)]">{message.content}</div>
+						<div class="text-[var(--text-secondary)]">{@html highlightPlayerNames(message.content)}</div>
 					{/if}
 				</div>
 			{/if}

@@ -1,14 +1,21 @@
 <script lang="ts">
 	import { marked } from 'marked';
+	import { getPlayerColor } from '$lib/utils/playerColors';
+
+	interface PlayerInfo {
+		characterName: string | null;
+		colorIndex: number;
+	}
 
 	interface Props {
 		content: string;
 		role: 'user' | 'assistant';
 		charName?: string;
 		userName?: string;
+		players?: PlayerInfo[];
 	}
 
-	let { content, role, charName = 'Character', userName = 'User' }: Props = $props();
+	let { content, role, charName = 'Character', userName = 'User', players = [] }: Props = $props();
 
 	// Check if this is an SD image message (reactive to content changes)
 	let sdImageMatch = $derived(content.match(/^\[SD_IMAGE\](.+?)\|(.+?)\[\/SD_IMAGE\]$/s));
@@ -18,6 +25,55 @@
 
 	// Lightbox state
 	let showLightbox = $state(false);
+
+	/**
+	 * Highlight player character names in already-HTML text with their assigned colors
+	 * Matches full names and individual name parts (e.g., "Mike Oxlong", "Mike", "Oxlong")
+	 */
+	function highlightPlayerNames(html: string): string {
+		// Build a map of name variants to their color
+		const nameToColor = new Map<string, string>();
+
+		players
+			.filter(p => p.characterName)
+			.forEach(p => {
+				const color = getPlayerColor(p.colorIndex).main;
+				const fullName = p.characterName!;
+
+				// Add full name
+				nameToColor.set(fullName.toLowerCase(), color);
+
+				// Add individual name parts (min 2 chars to avoid matching single letters)
+				const parts = fullName.split(/\s+/).filter(part => part.length >= 2);
+				parts.forEach(part => {
+					const key = part.toLowerCase();
+					if (!nameToColor.has(key)) {
+						nameToColor.set(key, color);
+					}
+				});
+			});
+
+		if (nameToColor.size === 0) return html;
+
+		// Build regex pattern - sort by length (longest first) to match full names before parts
+		const allNames = Array.from(nameToColor.keys())
+			.sort((a, b) => b.length - a.length)
+			.map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+		const pattern = new RegExp(`\\b(${allNames.join('|')})\\b`, 'gi');
+
+		// Replace names but not inside HTML tags
+		return html.replace(/>([^<]*)</g, (match, textContent) => {
+			const highlighted = textContent.replace(pattern, (name: string) => {
+				const color = nameToColor.get(name.toLowerCase());
+				if (color) {
+					return `<span class="player-name-highlight" style="color: ${color}; font-weight: 600;">${name}</span>`;
+				}
+				return name;
+			});
+			return '>' + highlighted + '<';
+		});
+	}
 
 	// Custom renderer for RP-style formatting
 	function renderMessage(text: string): string {
@@ -70,6 +126,9 @@
 
 		// Clean up any leftover <em> tags from markdown that weren't caught
 		html = html.replace(/<em>([^<]+)<\/em>/g, '<span class="rp-action">$1</span>');
+
+		// Step 5: Highlight player names with their colors
+		html = highlightPlayerNames(html);
 
 		return html;
 	}
