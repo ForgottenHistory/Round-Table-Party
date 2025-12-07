@@ -185,6 +185,29 @@
 			triggeringGM = false;
 		}
 	}
+
+	async function handleEditMessage(messageId: number, content: string) {
+		const response = await fetch(`/api/campaigns/${campaign.id}/messages/${messageId}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ content })
+		});
+
+		if (response.ok) {
+			const result = await response.json();
+			messages = messages.map(m => m.id === messageId ? { ...m, content: result.message.content } : m);
+		}
+	}
+
+	async function handleDeleteMessage(messageId: number) {
+		const response = await fetch(`/api/campaigns/${campaign.id}/messages/${messageId}`, {
+			method: 'DELETE'
+		});
+
+		if (response.ok) {
+			messages = messages.filter(m => m.id !== messageId);
+		}
+	}
 </script>
 
 <svelte:head>
@@ -210,6 +233,8 @@
 				{players}
 				{isHost}
 				{gmResponding}
+				onEditMessage={handleEditMessage}
+				onDeleteMessage={handleDeleteMessage}
 			/>
 		</div>
 

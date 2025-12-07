@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { CampaignPlayer } from '$lib/server/services/campaignService';
+	import { getPlayerColor } from '$lib/utils/playerColors';
 
 	interface Props {
 		players: CampaignPlayer[];
@@ -19,8 +20,15 @@
 	</div>
 	<div class="flex-1 overflow-y-auto p-4 space-y-2">
 		{#each players as player}
-			<div class="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-primary)]">
-				<div class="w-10 h-10 rounded-full bg-[var(--bg-primary)] flex items-center justify-center text-[var(--text-secondary)] font-bold">
+			{@const color = getPlayerColor(player.colorIndex)}
+			<div
+				class="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-tertiary)]"
+				style="border: 1px solid {color.main}40; background: {color.light};"
+			>
+				<div
+					class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white"
+					style="background: {color.main};"
+				>
 					{(player.characterName || player.displayName).charAt(0).toUpperCase()}
 				</div>
 				<div class="flex-1 min-w-0">
@@ -30,7 +38,7 @@
 					<div class="text-xs text-[var(--text-muted)] truncate">
 						{player.displayName}
 						{#if player.isHost}
-							<span class="text-[var(--accent-primary)]"> (Host)</span>
+							<span style="color: {color.main};"> (Host)</span>
 						{/if}
 					</div>
 				</div>

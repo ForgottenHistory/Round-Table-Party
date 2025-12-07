@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
-	import MainLayout from '$lib/components/MainLayout.svelte';
 	import LLMSettingsForm from '$lib/components/settings/LLMSettingsForm.svelte';
 	import PresetsSection from '$lib/components/settings/PresetsSection.svelte';
 	import SavePresetDialog from '$lib/components/settings/SavePresetDialog.svelte';
@@ -11,7 +10,7 @@
 
 	// Tab state
 	type SettingsTab = 'chat' | 'decision' | 'content' | 'image';
-	let activeTab = $state<SettingsTab>('chat');
+	let activeTab = $state<SettingsTab>('content');
 
 	// Default settings structure
 	const defaultLlmSettings = {
@@ -261,139 +260,160 @@
 	}
 
 	const tabs = [
-		{ id: 'chat' as const, label: 'Chat', description: 'Configure the model for character conversations' },
+		{ id: 'content' as const, label: 'Content', description: 'Configure the model for campaign premise and greeting generation' },
+		{ id: 'chat' as const, label: 'Chat', description: 'Configure the model for GM responses' },
 		{ id: 'decision' as const, label: 'Decision', description: 'Configure the model that makes decisions before sending content' },
-		{ id: 'content' as const, label: 'Content', description: 'Configure the model for content creation and generation' },
 		{ id: 'image' as const, label: 'Image', description: 'Configure the model for image generation' }
 	];
 </script>
 
 <svelte:head>
-	<title>Settings | AI Chat</title>
+	<title>LLM Settings | Round Table Party</title>
 </svelte:head>
 
-<MainLayout user={data.user} currentPath="/settings">
-	<div bind:this={containerRef} class="h-full overflow-y-auto bg-[var(--bg-primary)]">
-		<div class="max-w-5xl mx-auto px-8 py-8">
-			<!-- Header -->
-			<div class="mb-6">
-				<h1 class="text-3xl font-bold text-[var(--text-primary)] mb-2">LLM Settings</h1>
-				<p class="text-[var(--text-secondary)]">
-					Configure your language model preferences
-				</p>
+<div class="min-h-screen bg-[var(--bg-primary)]">
+	<!-- Header -->
+	<div class="bg-[var(--bg-secondary)] border-b border-[var(--border-primary)] px-6 py-4">
+		<div class="max-w-4xl mx-auto flex items-center justify-between">
+			<div class="flex items-center gap-4">
+				<a href="/" class="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+					</svg>
+				</a>
+				<h1 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)]">
+					LLM Settings
+				</h1>
 			</div>
-
-			<!-- Success/Error Message -->
-			{#if message}
-				<div
-					class="mb-6 p-4 rounded-xl border {message.type === 'success'
-						? 'bg-[var(--success)]/10 border-[var(--success)]/30 text-[var(--success)]'
-						: 'bg-[var(--error)]/10 border-[var(--error)]/30 text-[var(--error)]'}"
-				>
-					{message.text}
-				</div>
-			{/if}
-
-			<!-- Tabs -->
-			<div class="flex flex-wrap gap-2 mb-6">
-				{#each tabs as tab}
+			<div class="flex items-center gap-3">
+				<span class="text-[var(--text-secondary)]">{data.user.displayName}</span>
+				<form method="POST" action="/api/auth/logout">
 					<button
-						onclick={() => (activeTab = tab.id)}
-						class="px-5 py-2.5 rounded-xl font-medium transition-all {activeTab === tab.id
-							? 'bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg'
-							: 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-primary)]'}"
+						type="submit"
+						class="p-2 text-[var(--text-muted)] hover:text-[var(--error)] hover:bg-[var(--bg-tertiary)] rounded-lg transition"
+						title="Logout"
 					>
-						{tab.label}
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+						</svg>
 					</button>
-				{/each}
+				</form>
 			</div>
-
-			<!-- Tab Description -->
-			<p class="text-sm text-[var(--text-muted)] mb-6">
-				{tabs.find(t => t.id === activeTab)?.description}
-			</p>
-
-			<!-- Global Presets Section -->
-			<PresetsSection
-				{presets}
-				onLoadPreset={loadPresetSettings}
-				onDeletePreset={deletePreset}
-				{deletingPresetId}
-			/>
-
-			<!-- Chat Tab -->
-			{#if activeTab === 'chat'}
-				<div class="bg-[var(--bg-secondary)] rounded-xl shadow-md border border-[var(--border-primary)] overflow-hidden">
-					{#if loading}
-						<SettingsLoadingSkeleton />
-					{:else}
-						<LLMSettingsForm
-							bind:settings={chatSettings}
-							{saving}
-							onSave={saveChatSettings}
-							onSavePreset={() => (showSavePresetDialog = true)}
-							onReload={loadSettings}
-						/>
-					{/if}
-				</div>
-			{/if}
-
-			<!-- Decision Engine Tab -->
-			{#if activeTab === 'decision'}
-				<div class="bg-[var(--bg-secondary)] rounded-xl shadow-md border border-[var(--border-primary)] overflow-hidden">
-					{#if loading}
-						<SettingsLoadingSkeleton />
-					{:else}
-						<LLMSettingsForm
-							bind:settings={decisionSettings}
-							{saving}
-							onSave={saveDecisionSettings}
-							onSavePreset={() => (showSavePresetDialog = true)}
-							onReload={loadSettings}
-						/>
-					{/if}
-				</div>
-			{/if}
-
-			<!-- Content LLM Tab -->
-			{#if activeTab === 'content'}
-				<div class="bg-[var(--bg-secondary)] rounded-xl shadow-md border border-[var(--border-primary)] overflow-hidden">
-					{#if loading}
-						<SettingsLoadingSkeleton />
-					{:else}
-						<LLMSettingsForm
-							bind:settings={contentSettings}
-							{saving}
-							onSave={saveContentSettings}
-							onSavePreset={() => (showSavePresetDialog = true)}
-							onReload={loadSettings}
-						/>
-					{/if}
-				</div>
-			{/if}
-
-			<!-- Image LLM Tab -->
-			{#if activeTab === 'image'}
-				<div class="bg-[var(--bg-secondary)] rounded-xl shadow-md border border-[var(--border-primary)] overflow-hidden">
-					{#if loading}
-						<SettingsLoadingSkeleton />
-					{:else}
-						<LLMSettingsForm
-							bind:settings={imageSettings}
-							{saving}
-							onSave={saveImageSettings}
-							onSavePreset={() => (showSavePresetDialog = true)}
-							onReload={loadSettings}
-						/>
-					{/if}
-				</div>
-			{/if}
 		</div>
 	</div>
 
-	<SavePresetDialog
-		bind:show={showSavePresetDialog}
-		saving={savingPreset}
-		onSave={savePreset}
-	/>
-</MainLayout>
+	<!-- Main Content -->
+	<div bind:this={containerRef} class="max-w-4xl mx-auto px-6 py-8">
+		<!-- Success/Error Message -->
+		{#if message}
+			<div
+				class="mb-6 p-4 rounded-xl border {message.type === 'success'
+					? 'bg-[var(--success)]/10 border-[var(--success)]/30 text-[var(--success)]'
+					: 'bg-[var(--error)]/10 border-[var(--error)]/30 text-[var(--error)]'}"
+			>
+				{message.text}
+			</div>
+		{/if}
+
+		<!-- Tabs -->
+		<div class="flex flex-wrap gap-2 mb-6">
+			{#each tabs as tab}
+				<button
+					onclick={() => (activeTab = tab.id)}
+					class="px-5 py-2.5 rounded-xl font-medium transition-all {activeTab === tab.id
+						? 'bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg'
+						: 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-primary)]'}"
+				>
+					{tab.label}
+				</button>
+			{/each}
+		</div>
+
+		<!-- Tab Description -->
+		<p class="text-sm text-[var(--text-muted)] mb-6">
+			{tabs.find(t => t.id === activeTab)?.description}
+		</p>
+
+		<!-- Global Presets Section -->
+		<PresetsSection
+			{presets}
+			onLoadPreset={loadPresetSettings}
+			onDeletePreset={deletePreset}
+			{deletingPresetId}
+		/>
+
+		<!-- Chat Tab -->
+		{#if activeTab === 'chat'}
+			<div class="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] overflow-hidden">
+				{#if loading}
+					<SettingsLoadingSkeleton />
+				{:else}
+					<LLMSettingsForm
+						bind:settings={chatSettings}
+						{saving}
+						onSave={saveChatSettings}
+						onSavePreset={() => (showSavePresetDialog = true)}
+						onReload={loadSettings}
+					/>
+				{/if}
+			</div>
+		{/if}
+
+		<!-- Decision Engine Tab -->
+		{#if activeTab === 'decision'}
+			<div class="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] overflow-hidden">
+				{#if loading}
+					<SettingsLoadingSkeleton />
+				{:else}
+					<LLMSettingsForm
+						bind:settings={decisionSettings}
+						{saving}
+						onSave={saveDecisionSettings}
+						onSavePreset={() => (showSavePresetDialog = true)}
+						onReload={loadSettings}
+					/>
+				{/if}
+			</div>
+		{/if}
+
+		<!-- Content LLM Tab -->
+		{#if activeTab === 'content'}
+			<div class="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] overflow-hidden">
+				{#if loading}
+					<SettingsLoadingSkeleton />
+				{:else}
+					<LLMSettingsForm
+						bind:settings={contentSettings}
+						{saving}
+						onSave={saveContentSettings}
+						onSavePreset={() => (showSavePresetDialog = true)}
+						onReload={loadSettings}
+					/>
+				{/if}
+			</div>
+		{/if}
+
+		<!-- Image LLM Tab -->
+		{#if activeTab === 'image'}
+			<div class="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] overflow-hidden">
+				{#if loading}
+					<SettingsLoadingSkeleton />
+				{:else}
+					<LLMSettingsForm
+						bind:settings={imageSettings}
+						{saving}
+						onSave={saveImageSettings}
+						onSavePreset={() => (showSavePresetDialog = true)}
+						onReload={loadSettings}
+					/>
+				{/if}
+			</div>
+		{/if}
+	</div>
+</div>
+
+<SavePresetDialog
+	bind:show={showSavePresetDialog}
+	saving={savingPreset}
+	onSave={savePreset}
+/>

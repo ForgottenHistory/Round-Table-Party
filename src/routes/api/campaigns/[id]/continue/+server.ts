@@ -101,6 +101,13 @@ ${playerList || '(No characters yet)'}
 - Create interesting situations and challenges
 - Maintain consistency with previous events
 
+## Writing Style
+- Use "quotes" for dialogue spoken by NPCs
+- Write all narration and descriptions without any special formatting
+- Do NOT use asterisks (*) for actions or emphasis
+- Do NOT use italics or bold formatting
+- Example: The innkeeper smiled warmly. "Welcome, travelers! What brings you to the Silver Stag?"
+
 ## Rules
 - Never control player characters - only describe outcomes of their actions
 - Be descriptive but concise (2-4 paragraphs typically)

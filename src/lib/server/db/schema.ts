@@ -335,6 +335,7 @@ export const campaignPlayers = sqliteTable('campaign_players', {
 	userId: integer('user_id')
 		.notNull()
 		.references(() => users.id, { onDelete: 'cascade' }),
+	colorIndex: integer('color_index').notNull().default(0), // Index into player colors array (0-19)
 	hasSubmittedAction: integer('has_submitted_action', { mode: 'boolean' }).notNull().default(false),
 	joinedAt: integer('joined_at', { mode: 'timestamp' })
 		.notNull()

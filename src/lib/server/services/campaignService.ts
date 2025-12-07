@@ -13,6 +13,7 @@ import type {
 	CampaignCharacter,
 	CampaignMessage
 } from '../db/schema';
+import { getNextColorIndex } from '$lib/utils/playerColors';
 
 /**
  * Generate a random 6-character invite code
@@ -37,6 +38,7 @@ export type CampaignPlayer = {
 	characterName: string | null;
 	hasSubmittedAction: boolean;
 	isHost: boolean;
+	colorIndex: number;
 };
 
 class CampaignService {
@@ -75,10 +77,11 @@ class CampaignService {
 			})
 			.returning();
 
-		// Add host as first player
+		// Add host as first player with colorIndex 0
 		await db.insert(campaignPlayers).values({
 			campaignId: campaign.id,
 			userId: hostUserId,
+			colorIndex: 0,
 			hasSubmittedAction: false
 		});
 
@@ -184,11 +187,21 @@ class CampaignService {
 			return existing[0];
 		}
 
+		// Get used color indexes in this campaign
+		const existingPlayers = await db
+			.select({ colorIndex: campaignPlayers.colorIndex })
+			.from(campaignPlayers)
+			.where(eq(campaignPlayers.campaignId, campaignId));
+
+		const usedIndexes = existingPlayers.map((p) => p.colorIndex);
+		const colorIndex = getNextColorIndex(usedIndexes);
+
 		const [player] = await db
 			.insert(campaignPlayers)
 			.values({
 				campaignId,
 				userId,
+				colorIndex,
 				hasSubmittedAction: false
 			})
 			.returning();
@@ -226,6 +239,7 @@ class CampaignService {
 			.select({
 				userId: campaignPlayers.userId,
 				hasSubmittedAction: campaignPlayers.hasSubmittedAction,
+				colorIndex: campaignPlayers.colorIndex,
 				displayName: users.displayName
 			})
 			.from(campaignPlayers)
@@ -249,7 +263,8 @@ class CampaignService {
 			displayName: p.displayName,
 			characterName: charMap.get(p.userId) || null,
 			hasSubmittedAction: p.hasSubmittedAction,
-			isHost: p.userId === campaign.hostUserId
+			isHost: p.userId === campaign.hostUserId,
+			colorIndex: p.colorIndex
 		}));
 	}
 
