@@ -1,34 +1,34 @@
 @import 'tailwindcss';
 
-/* Cool Dark Theme - CSS Custom Properties */
+/* Dark Green Theme - CSS Custom Properties */
 :root {
-	/* Base backgrounds */
-	--bg-primary: #0f172a;      /* slate-900 */
-	--bg-secondary: #1e293b;    /* slate-800 */
-	--bg-tertiary: #334155;     /* slate-700 */
-	--bg-elevated: #1e293b;     /* slate-800 */
+	/* Base backgrounds - deep blacks */
+	--bg-primary: #0a0a0a;      /* near black */
+	--bg-secondary: #111111;    /* very dark gray */
+	--bg-tertiary: #1a1a1a;     /* dark gray */
+	--bg-elevated: #141414;     /* slightly elevated */
 
 	/* Text colors */
-	--text-primary: #ffffff;    /* white */
-	--text-secondary: #cbd5e1;  /* slate-300 */
-	--text-muted: #94a3b8;      /* slate-400 */
+	--text-primary: #e4e4e7;    /* zinc-200 */
+	--text-secondary: #a1a1aa;  /* zinc-400 */
+	--text-muted: #71717a;      /* zinc-500 */
 
 	/* Border colors */
-	--border-primary: #334155;  /* slate-700 */
-	--border-secondary: #475569; /* slate-600 */
+	--border-primary: #27272a;  /* zinc-800 */
+	--border-secondary: #3f3f46; /* zinc-700 */
 
-	/* Accent colors */
-	--accent-primary: #6366f1;  /* indigo-500 */
-	--accent-secondary: #8b5cf6; /* violet-500 */
-	--accent-hover: #818cf8;    /* indigo-400 */
+	/* Accent colors - emerald green */
+	--accent-primary: #10b981;  /* emerald-500 */
+	--accent-secondary: #059669; /* emerald-600 */
+	--accent-hover: #34d399;    /* emerald-400 */
 
 	/* User message bubble */
-	--user-bubble-from: #4f46e5; /* indigo-600 */
-	--user-bubble-to: #7c3aed;   /* violet-600 */
+	--user-bubble-from: #059669; /* emerald-600 */
+	--user-bubble-to: #047857;   /* emerald-700 */
 
 	/* Assistant message bubble */
-	--assistant-bubble: #1e293b; /* slate-800 */
-	--assistant-border: #334155; /* slate-700 */
+	--assistant-bubble: #141414; /* dark */
+	--assistant-border: #27272a; /* zinc-800 */
 
 	/* Status colors */
 	--success: #22c55e;         /* green-500 */
@@ -36,9 +36,9 @@
 	--error: #ef4444;           /* red-500 */
 
 	/* Sidebar */
-	--sidebar-bg: #0f172a;      /* slate-900 */
-	--sidebar-hover: #1e293b;   /* slate-800 */
-	--sidebar-active: #334155;  /* slate-700 */
+	--sidebar-bg: #0a0a0a;      /* near black */
+	--sidebar-hover: #141414;   /* dark */
+	--sidebar-active: #1a1a1a;  /* dark gray */
 }
 
 /* Custom Scrollbar Styling */
